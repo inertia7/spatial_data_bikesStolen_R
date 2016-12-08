@@ -36,8 +36,8 @@ bikesStolen$toDate <- as.Date(
   bikesStolen$toDate, 
   format = "%m/%d/%Y")
 
-bikesStolen$Speed <- as.factor(bikesStolen$Brand)
-bikesStolen$Speed <- as.factor(bikesStolen$Model)
+bikesStolen$Brand <- as.factor(bikesStolen$Brand)
+bikesStolen$Model <- as.factor(bikesStolen$Model)
 bikesStolen$Speed <- as.factor(bikesStolen$Speed)
 
 colorLabels <- c("Black","Blue","White","Green","Red", "Grey",
