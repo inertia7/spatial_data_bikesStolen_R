@@ -18,16 +18,18 @@ library(data.table)
 library(mapdata)
 library(plyr)
 
-setwd("/myProjects/set/app/working/dir/bikesStolen")
-bikesStolen <- read.csv("bikesStolen.csv", stringsAsFactors = F)
+setwd("/home/myProjects/approp/working/dir/bikesStolen")
+bikesStolen <- read.csv("rawFile.csv", stringsAsFactors = F)
 # NOT INCLUDED IN THE PROJECT BUT USED TO HAVE AN 
-# OVERVIEW OF THE DATASET
+# OVERVIEW OF THE DATA SET
 View(bikesStolen)
 bikesStolen <- data.table(bikesStolen)
 head(bikesStolen)
 str(bikesStolen)
 
-#### CLEANING DATA 
+# DATA WRANGLING
+
+#### CONVERTING DATA TYPES
 bikesStolen$fromDate <- as.Date(
   bikesStolen$fromDate,
   format = "%m/%d/%Y")
@@ -40,6 +42,7 @@ bikesStolen$Brand <- as.factor(bikesStolen$Brand)
 bikesStolen$Model <- as.factor(bikesStolen$Model)
 bikesStolen$Speed <- as.factor(bikesStolen$Speed)
 
+# BEFORE WE ASSIGN THE VARIABLES TO REDUCE WORK SPACE
 colorLabels <- c("Black","Blue","White","Green","Red", "Grey",
   "Silver", "Yellow","Purple","Pink","Orange",
   "Brown","Light Green","Light Blue","Burgundy/Maroon","Turquoise",
@@ -53,18 +56,24 @@ bikesStolen$Color <- ordered(
            "BRO","LGR","LBL","MAR","TRQ","DGR",
            "TAN","COM","GLD","DBL","CRM","BGE", ""),
   labels=colorLabels)
-# CHECK TO SEE IF THE FUNCTION WORKED PROPERLY
-bikesStolen$Color
+
+#### GEOCODING
+coords <- geocode(bikesStolen$Location)
+bikesStolen <- data.table(bikesStolen, coords)
+
+### CHECK TO SEE IF THE FUNCTION WORKED PROPERLY
+head(bikesStolen$Color)
+
+### OUTPUTTING CSV FILE
+write.csv(bikesStolen, file = "bikesStolen.csv")
 
 # FINDING STATISTICAL SIGNIFICANCE OF MISSING DATA
-View(bikesStolen[Color == "Not Given"])
 bikesStolen$Color[bikesStolen$Color == "Not Given"] <- NA 
 bikesStolen$Color
 
 # HERE WE CALCULATE THE PERCENTAGE OF MISSING DATA FOR THE
 # VARIABLE 'Color'
 (sum(is.na(bikesStolen$Color))/length(bikesStolen$Color)) * 100
-
 
 # Visual Representation of Missing Values for Color
 colors <- data.table(table(bikesStolen$Color))
@@ -78,8 +87,7 @@ colors
 
 colors$Color <- ordered(
   colors$Color, 
-  levels=colorLabels
-  )
+  levels=colorLabels)
 
 colors$Color
 
@@ -98,6 +106,9 @@ bC <- ggplot(colors, aes(Color, Counts, fill = Color)) +
                                "#0EBFE9", "#FCFBE3", "#f5f5dc", "#2d423f")) 
 bC
 
+# EXPLORATORY ANALYSIS
+
+## SPATIAL MAPS
 # MELT DATA FRAME
 density <- ddply(bikesStolen, .(Location), "nrow")
 colnames(density) <- c("Location", "count")
@@ -106,21 +117,32 @@ DF
 duplicated(DF$Location)
 DF[duplicated(DF$Location),]
 DF
-
-# TRYING TO CREATE PLOTS USING GGMAP
+write.csv(DF, file = "testLongLat.csv")
+# RENDERING THE MAP FOR ISLA VISTA
 islaVistaMap <- qmap("Isla Vista", zoom = 15, color = "bw", legend = "topleft")
 circle_scale_amt = .4
 
-# FIRST SPATIAL MAP 
+# BASIC SPATIAL MAP 
 islaVistaMap + 
   geom_point(
-    data=DF, mapping = aes(x = long, y = lat, colour = Location), 
-    na.rm=TRUE, alpha = 1/40, size = DF$count*circle_scale_amt
+    data=DF, mapping = aes(x = long, y = lat, colour = 'red'), 
+    na.rm=TRUE
     ) +
-  theme(legend.position="none") + 
+  theme(legend.position="none") +
   scale_size_continuous(range=range(DF$count)) + 
   ggtitle("Frequency of Bikes Stolen in Isla Vista", subtitle = "Encompassing 2010-2016")
 
+# BASIC MAP WITH COLOR CHANGED TO ONLY RED
+  islaVistaMap + 
+    geom_point(
+      data=DF2, mapping = aes(x = long2, y = lat2, colour = 'red'), 
+      na.rm=TRUE
+    ) +
+    theme(legend.position="none") + facet_wrap(~ fromDate)
+  scale_size_continuous(range=range(DF$count)) + 
+    ggtitle("Frequency of Bikes Stolen in Isla Vista", subtitle = "Encompassing 2010-2016")
+  
+  
 # SPATIAL MAP USING THE SAME COLOR FOR geom_point
 islaVistaMap + 
   geom_point(
@@ -234,13 +256,3 @@ islaVistaMap +
   )  + 
   labs(title = "Frequency of Bikes Stolen in Isla Vista", subtitle = "Encompassing the year 2016") +
   theme(legend.position="none")
-
-# SECTION NOT YET PUBLISHED 
-# SIGNIFICANCE OF MISSING DATA WRT LOCATION
-bikesStolen$Location
-bikesStolen$Location[bikesStolen$Location == "UNKNOWN LOCATION IN ISLA VISTA"] <- NA 
-bikesStolen$Location
-# HERE WE CALCULATE THE PERCENTAGE OF MISSING DATA FOR THE
-# VARIABLE 'Location'
-(sum(is.na(bikesStolen$Location))/length(bikesStolen$Location)) * 100
-
